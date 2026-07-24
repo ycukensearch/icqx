@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>ICQX Browser</title>
+ <link rel="stylesheet" href="style.css">
+<style>
+body,
+html {
+ margin: 0;
+ padding: 0;
+ height: 100%;
+ font-family: Segoe UI Light, sans-serif;
+ box-sizing: border-box;
+}
+h1 {
+font-family: Segoe UI Light;
+color: Red;
+}
+p {
+font-family: Segoe UI Light;
+color: Red;
+}
+#url-bar {
+ width: 80%;
+ padding: 10px;
+ border-radius: 64px;
+}
+
+#nav-bar {
+ display: flex;
+ align-items: center;
+ width: 100vw;
+ z-index: 1000;
+ height: 50px;
+ background: Green;
+}
+
+#go-button {
+ padding: 10px;
+ background-color: Red;
+ border-radius: 64px;
+ color: #1b2b4c;
+ margin-left: auto;
+}
+
+#go-button:hover {
+ cursor: pointer;
+ background-color: #1b2b4c;
+ color: #f5f6f7;
+}
+
+#browser-content {
+ margin-top: 60px;
+ padding: 10px;
+}
+</style>
+</head>
+
+<body>
+ <div id="nav-bar">
+  <p>ICQX</p> <input type="text" id="url-bar" placeholder="URL" />
+   <button id="go-button">Go</button>
+ </div>
+ <div id="browser-content">
+<h1>ICQX - Web-браузер от Seogle</h1>
+ </div>
+ <script>
+   document.getElementById('go-button').addEventListener('click', () => {
+     const url = document.getElementById('url-bar').value;
+     window.location.href = url;
+   });
+   const { app, BrowserWindow, ipcMain } = require("electron");
+const path = require("path");
+let mainWindow;
+function createWindow() {
+ mainWindow = new BrowserWindow({
+   width: 800,
+   height: 600,
+   webPreferences: {
+     preload: path.join(__dirname, "preload.js"),
+
+     contextIsolation: true,
+
+     enableRemoteModule: false,
+   },
+ });
+
+ mainWindow.loadFile("index.html");
+ // Отображаем окно, когда оно будет готово
+ mainWindow.once("ready-to-show", () => {
+   mainWindow.show();
+ });
+ ipcMain.on("open-url", (event, url) => {
+   // Загружаем указанный URL в текущее окно
+   mainWindow.loadURL(url);
+ });
+}
+app.on("ready", createWindow);
+// Закрываем приложение, если все окна закрыты, кроме macOS
+app.on("window-all-closed", () => {
+ if (process.platform !== "darwin") {
+   // Завершаем работу приложения
+   app.quit();
+ }
+});
+app.on("activate", () => {
+ if (BrowserWindow.getAllWindows().length === 0) {
+   // Создаём новое окно, если нет открытых окон
+   createWindow();
+ }
+});
+// Импортируем нужные модули из Electron
+const { contextBridge, ipcRenderer } = require("electron");
+// Используем contextBridge для безопасного взаимодействия между рендер-процессом и основным процессом
+contextBridge.exposeInMainWorld("electronAPI", {
+ // Создаём функцию openURL, доступную в рендер-процессе, которая отправляет сообщение в основной процесс
+ openURL: (url) => ipcRenderer.send("open-url", url),
+});
+ </script>
+</body>
+
+</html>
